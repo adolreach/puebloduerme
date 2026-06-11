@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -116,7 +117,7 @@ class GameViewModel : ViewModel() {
 
     var chatText by mutableStateOf("")
     var hostConfig by mutableStateOf<Map<String, Int>>(emptyMap())
-    var showRoleConfig by mutableStateOf(false)
+    var useAutoPreset by mutableStateOf(true)
 
     private var server: io.ktor.server.engine.EmbeddedServer<*, *>? = null
     private val hosts = ConcurrentHashMap<String, GameHost>()
@@ -127,9 +128,10 @@ class GameViewModel : ViewModel() {
     fun createRoom(name: String) {
         playerName = name
         isHost = true
+        useAutoPreset = true
         statusMsg = "Iniciando servidor..."
 
-        hostConfig = mapOf("Hombre lobo" to 1)
+        hostConfig = mutableMapOf("Hombre lobo" to 1)
 
         server = embeddedServer(CIO, port = 8080) {
             install(io.ktor.server.websocket.WebSockets)
@@ -315,49 +317,49 @@ fun LobbyScreen(vm: GameViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Pueblo Duerme", fontSize = 32.sp, fontWeight = FontWeight.Bold,
-            color = MedievalColors.Gold, fontFamily = FontFamily.Serif)
-        MedievalDivider()
+            color = MC.BrightGold, fontFamily = FontFamily.Serif)
+        ShieldBorder(color = MC.Gold)
         Spacer(Modifier.height(8.dp))
-        Text("Juego de deducción social", color = MedievalColors.MoonSilver, fontSize = 14.sp, fontFamily = FontFamily.Serif)
+        Text("Juego de deducción social", color = MC.Parchment, fontSize = 15.sp, fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(32.dp))
 
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Tu nombre", color = MedievalColors.MoonSilver) },
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Tu nombre", color = MC.MoonSilver) },
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = MedievalColors.Parchment, unfocusedTextColor = MedievalColors.Parchment,
-                focusedBorderColor = MedievalColors.Gold, unfocusedBorderColor = MedievalColors.StoneGray))
+            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = MC.Parchment, unfocusedTextColor = MC.Parchment,
+                focusedBorderColor = MC.Gold, unfocusedBorderColor = MC.StoneGray))
         Spacer(Modifier.height(16.dp))
 
-        Button(onClick = { if (name.isNotBlank()) vm.createRoom(name) }, modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = MedievalColors.ForestGreen)) { Text("Crear sala (anfitrión)", fontFamily = FontFamily.Serif) }
+        Button(onClick = { if (name.isNotBlank()) vm.createRoom(name) }, modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MC.ForestGreen)) { Text("Crear sala (anfitrión)", fontFamily = FontFamily.Serif, color = Color.White, fontSize = 15.sp) }
 
         Spacer(Modifier.height(20.dp))
-        MedievalDivider()
+        ShieldBorder()
         Spacer(Modifier.height(20.dp))
 
-        OutlinedTextField(value = code, onValueChange = { code = it.uppercase() }, label = { Text("Código de sala", color = MedievalColors.MoonSilver) },
+        OutlinedTextField(value = code, onValueChange = { code = it.uppercase() }, label = { Text("Código de sala", color = MC.MoonSilver) },
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = MedievalColors.Parchment, unfocusedTextColor = MedievalColors.Parchment,
-                focusedBorderColor = MedievalColors.Gold, unfocusedBorderColor = MedievalColors.StoneGray))
+            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = MC.Parchment, unfocusedTextColor = MC.Parchment,
+                focusedBorderColor = MC.Gold, unfocusedBorderColor = MC.StoneGray))
         Spacer(Modifier.height(8.dp))
 
         // Advanced: server URL toggle
         TextButton(onClick = { showAdvanced = !showAdvanced }) {
             Text(if (showAdvanced) "▲ Ocultar opciones avanzadas" else "▼ Servidor remoto (opciones avanzadas)",
-                color = MedievalColors.MoonSilver.copy(alpha = 0.6f), fontSize = 12.sp)
+                color = MC.MoonSilver.copy(alpha = 0.6f), fontSize = 12.sp)
         }
         AnimatedVisibility(visible = showAdvanced) {
             Column {
                 OutlinedTextField(value = serverUrl, onValueChange = { serverUrl = it },
-                    label = { Text("URL del servidor", color = MedievalColors.MoonSilver) },
+                    label = { Text("URL del servidor", color = MC.MoonSilver) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = MedievalColors.Parchment, unfocusedTextColor = MedievalColors.Parchment,
-                        focusedBorderColor = MedievalColors.MagicTeal, unfocusedBorderColor = MedievalColors.StoneGray))
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = MC.Parchment, unfocusedTextColor = MC.Parchment,
+                        focusedBorderColor = MC.MagicTeal, unfocusedBorderColor = MC.StoneGray))
                 Spacer(Modifier.height(4.dp))
-                Text("Ej: ws://192.168.1.50:8080/game", color = MedievalColors.StoneGray, fontSize = 11.sp)
+                Text("Ej: ws://192.168.1.50:8080/game", color = MC.StoneGray, fontSize = 11.sp)
                 if (vm.reconnectToken.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
                     TextButton(onClick = { vm.reconnectToRoom() }) {
-                        Text("Reconectar (token: ${vm.reconnectToken.take(6)}...)", color = MedievalColors.MagicTeal, fontSize = 12.sp)
+                        Text("Reconectar (token: ${vm.reconnectToken.take(6)}...)", color = MC.MagicTeal, fontSize = 12.sp)
                     }
                 }
             }
@@ -365,9 +367,9 @@ fun LobbyScreen(vm: GameViewModel) {
         Spacer(Modifier.height(8.dp))
 
         Button(onClick = { if (name.isNotBlank() && code.isNotBlank()) vm.joinRoom(name, code, serverUrl) }, modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = MedievalColors.RoyalPurple)) { Text("Unirse a sala", fontFamily = FontFamily.Serif) }
+            colors = ButtonDefaults.buttonColors(containerColor = MC.RoyalPurple)) { Text("Unirse a sala", fontFamily = FontFamily.Serif) }
 
-        if (vm.statusMsg.isNotBlank()) { Spacer(Modifier.height(16.dp)); Text(vm.statusMsg, color = MedievalColors.Gold, fontSize = 13.sp) }
+        if (vm.statusMsg.isNotBlank()) { Spacer(Modifier.height(16.dp)); Text(vm.statusMsg, color = MC.Gold, fontSize = 13.sp) }
     }
 }
 
@@ -426,15 +428,17 @@ fun GameScreen(vm: GameViewModel) {
 
 @Composable
 fun PhaseHeader(vm: GameViewModel) {
-    val phaseColors = mapOf(Phase.NOCHE to Color(0xFF0D1B2A), Phase.DIA to Color(0xFFFF8F00), Phase.DISCUSION to Color(0xFF4A148C), Phase.VOTACION to Color(0xFF8B0000), Phase.FIN to Color(0xFF1B5E20))
+    val phaseColors = mapOf(Phase.NOCHE to Color(0xFF070B19), Phase.DIA to Color(0xFFFF8F00), Phase.DISCUSION to Color(0xFF6A1B9A), Phase.VOTACION to Color(0xFFC62828), Phase.FIN to Color(0xFF1B5E20))
 
     Surface(color = phaseColors[vm.currentPhase] ?: Color.DarkGray, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(when (vm.currentPhase) {
-                Phase.NOCHE -> "Noche"; Phase.DIA -> "Amanecer"; Phase.DISCUSION -> "Discusión"; Phase.VOTACION -> "Votación"; Phase.FIN -> "Fin del juego"; Phase.LOBBY -> "Sala"
-            }, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White, fontFamily = FontFamily.Serif)
-            if (vm.round > 0) Text("Ronda ${vm.round}", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
-            if (vm.silenced) Text("Estás silenciado", color = Color(0xFFFF5252), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(when (vm.currentPhase) {
+                    Phase.NOCHE -> "Noche"; Phase.DIA -> "Amanecer"; Phase.DISCUSION -> "Discusión"; Phase.VOTACION -> "Votación"; Phase.FIN -> "Fin del juego"; Phase.LOBBY -> "Sala"
+                }, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MC.BrightGold, fontFamily = FontFamily.Serif)
+                if (vm.round > 0) Text("Ronda ${vm.round}", color = MC.Parchment, fontSize = 13.sp)
+            }
+            if (vm.silenced) Text("Silenciado", color = MC.BloodRed, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
         }
     }
 }
@@ -444,7 +448,7 @@ fun PlayerList(vm: GameViewModel) {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp).horizontalScroll(rememberScrollState())) {
         vm.players.forEach { p ->
             AnimatedVisibility(visible = true, enter = fadeIn() + expandHorizontally()) {
-                val bg = if (!p.alive) MedievalColors.AshGray else if (vm.wolves.contains(p.id)) MedievalColors.RoyalPurple.copy(alpha = 0.4f) else MedievalColors.ForestGreen.copy(alpha = 0.3f)
+                val bg = if (!p.alive) MC.AshGray else if (vm.wolves.contains(p.id)) MC.RoyalPurple.copy(alpha = 0.4f) else MC.ForestGreen.copy(alpha = 0.3f)
                 Text("${p.name}${if (!p.alive) " ☠" else ""}",
                     modifier = Modifier.background(bg, RoundedCornerShape(6.dp)).padding(horizontal = 5.dp, vertical = 2.dp),
                     fontSize = 11.sp, color = Color.White, fontFamily = FontFamily.Serif)
@@ -455,7 +459,7 @@ fun PlayerList(vm: GameViewModel) {
 
 @Composable
 fun DeathAnnouncement(vm: GameViewModel) {
-    Surface(color = MedievalColors.BloodRed.copy(alpha = 0.85f), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = MC.BloodRed.copy(alpha = 0.85f), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(10.dp)) {
             vm.lastDeaths.forEach { d -> Text("Muerto: $d", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif) }
         }
@@ -465,7 +469,7 @@ fun DeathAnnouncement(vm: GameViewModel) {
 @Composable
 fun LynchAnnouncement(vm: GameViewModel) {
     vm.lynchInfo?.let { info ->
-        Surface(color = MedievalColors.FireOrange.copy(alpha = 0.85f), modifier = Modifier.fillMaxWidth()) {
+        Surface(color = MC.FireOrange.copy(alpha = 0.85f), modifier = Modifier.fillMaxWidth()) {
             Text(info, modifier = Modifier.padding(10.dp), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
         }
     }
@@ -474,9 +478,9 @@ fun LynchAnnouncement(vm: GameViewModel) {
 @Composable
 fun GameOverPanel(vm: GameViewModel) {
     vm.gameOverInfo?.let { info ->
-        Surface(color = MedievalColors.DarkWood, modifier = Modifier.fillMaxWidth()) {
+        Surface(color = MC.DarkWood, modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
-                Text(info, color = MedievalColors.Gold, fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+                Text(info, color = MC.Gold, fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
                 if (vm.allRolesText.isNotBlank()) { Spacer(Modifier.height(8.dp)); Text("Roles:", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp); Text(vm.allRolesText, color = Color.White, fontSize = 13.sp) }
             }
         }
@@ -488,9 +492,9 @@ fun NightActionsPanel(vm: GameViewModel) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Fase nocturna", fontSize = 18.sp, color = Color(0xFFBBDEFB), fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(8.dp))
-        Text("Tu rol: ${vm.myRole}", fontSize = 16.sp, color = MedievalColors.Gold, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+        Text("Tu rol: ${vm.myRole}", fontSize = 16.sp, color = MC.Gold, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
         vm.myAbilities.forEach { ab -> Text("• $ab", fontSize = 13.sp, color = Color.White.copy(alpha = 0.6f)) }
-        if (vm.isHost) { Spacer(Modifier.height(20.dp)); Button(onClick = { vm.advancePhase() }, colors = ButtonDefaults.buttonColors(containerColor = MedievalColors.NightBlue)) { Text("Resolver noche", fontFamily = FontFamily.Serif) } }
+        if (vm.isHost) { Spacer(Modifier.height(20.dp)); Button(onClick = { vm.advancePhase() }, colors = ButtonDefaults.buttonColors(containerColor = MC.NightBlue)) { Text("Resolver noche", fontFamily = FontFamily.Serif) } }
     }
 }
 
@@ -498,8 +502,8 @@ fun NightActionsPanel(vm: GameViewModel) {
 fun DayActionsPanel(vm: GameViewModel) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Fase de día", fontSize = 18.sp, color = Color(0xFFFFF9C4), fontFamily = FontFamily.Serif)
-        Spacer(Modifier.height(8.dp)); Text(vm.statusMsg, fontSize = 13.sp, color = MedievalColors.Gold)
-        if (vm.isHost) { Spacer(Modifier.height(20.dp)); Button(onClick = { vm.advancePhase() }, colors = ButtonDefaults.buttonColors(containerColor = MedievalColors.FireOrange)) { Text("Iniciar discusión", fontFamily = FontFamily.Serif) } }
+        Spacer(Modifier.height(8.dp)); Text(vm.statusMsg, fontSize = 13.sp, color = MC.Gold)
+        if (vm.isHost) { Spacer(Modifier.height(20.dp)); Button(onClick = { vm.advancePhase() }, colors = ButtonDefaults.buttonColors(containerColor = MC.FireOrange)) { Text("Iniciar discusión", fontFamily = FontFamily.Serif) } }
     }
 }
 
@@ -511,7 +515,7 @@ fun VotingPanel(vm: GameViewModel) {
         LazyColumn {
             items(vm.players.filter { it.alive }) { p ->
                 Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).clickable { vm.castVote(p.id) }, color = Color(0xFF3E2723), shape = RoundedCornerShape(8.dp)) {
-                    Text("  ${p.name}", modifier = Modifier.padding(12.dp), color = MedievalColors.Parchment, fontSize = 15.sp, fontFamily = FontFamily.Serif)
+                    Text("  ${p.name}", modifier = Modifier.padding(12.dp), color = MC.Parchment, fontSize = 15.sp, fontFamily = FontFamily.Serif)
                 }
             }
             item {
@@ -520,7 +524,7 @@ fun VotingPanel(vm: GameViewModel) {
                 }
             }
         }
-        if (vm.isHost) { Spacer(Modifier.height(8.dp)); Button(onClick = { vm.advancePhase() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MedievalColors.BloodRed)) { Text("Resolver votación", fontFamily = FontFamily.Serif) } }
+        if (vm.isHost) { Spacer(Modifier.height(8.dp)); Button(onClick = { vm.advancePhase() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MC.BloodRed)) { Text("Resolver votación", fontFamily = FontFamily.Serif) } }
     }
 }
 
@@ -539,7 +543,7 @@ fun ActionTargetSelector(vm: GameViewModel) {
                 "CHIVATO_REVEAL" -> "Elige un jugador para revelar su rol"
                 "PRIEST_HOLYWATER" -> "Agua bendita — elige objetivo"
                 else -> prompt.type
-            }, color = MedievalColors.Gold, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+            }, color = MC.Gold, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
             Spacer(Modifier.height(6.dp))
             val targets = prompt.targets.mapNotNull { id -> vm.players.find { it.id == id } }
             LazyColumn(modifier = Modifier.heightIn(max = 180.dp)) {
@@ -559,14 +563,14 @@ fun ChatPanel(vm: GameViewModel) {
     val channelMessages = vm.chatMessages.filter { it.channel == vm.currentChannel }
     LaunchedEffect(channelMessages.size) { if (channelMessages.isNotEmpty()) listState.animateScrollToItem(channelMessages.size - 1) }
 
-    Surface(color = MedievalColors.DarkWood.copy(alpha = 0.95f), modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp), shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) {
+    Surface(color = MC.DarkWood.copy(alpha = 0.95f), modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp), shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) {
         Column(modifier = Modifier.padding(6.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 vm.availableChannels.forEach { ch ->
                     val isSel = vm.currentChannel == ch
                     val label = when (ch) { "PUEBLO" -> "Pueblo"; "LOBOS" -> "Lobos"; "MUERTOS" -> "Muertos"; else -> ch }
-                    Surface(modifier = Modifier.clickable { vm.currentChannel = ch }, color = if (isSel) MedievalColors.Gold.copy(alpha = 0.3f) else Color(0xFF333333), shape = RoundedCornerShape(8.dp)) {
-                        Text(label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = if (isSel) MedievalColors.Gold else Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+                    Surface(modifier = Modifier.clickable { vm.currentChannel = ch }, color = if (isSel) MC.Gold.copy(alpha = 0.3f) else Color(0xFF333333), shape = RoundedCornerShape(8.dp)) {
+                        Text(label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = if (isSel) MC.Gold else Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
                     }
                 }
             }
@@ -574,116 +578,125 @@ fun ChatPanel(vm: GameViewModel) {
             LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
                 items(channelMessages) { msg ->
                     Column(modifier = Modifier.padding(vertical = 1.dp)) {
-                        Text(msg.fromName, color = MedievalColors.Gold.copy(alpha = 0.8f), fontSize = 10.sp, fontFamily = FontFamily.Serif)
-                        Text(msg.text, color = MedievalColors.Parchment, fontSize = 13.sp)
+                        Text(msg.fromName, color = MC.Gold.copy(alpha = 0.8f), fontSize = 10.sp, fontFamily = FontFamily.Serif)
+                        Text(msg.text, color = MC.Parchment, fontSize = 13.sp)
                     }
                 }
             }
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = vm.chatText, onValueChange = { vm.chatText = it }, modifier = Modifier.weight(1f),
                     placeholder = { Text("Mensaje...", color = Color.Gray) },
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = MedievalColors.Gold),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = MC.Gold),
                     singleLine = true)
-                IconButton(onClick = { vm.sendChat() }) { Text("▶", color = MedievalColors.Gold, fontSize = 16.sp) }
+                IconButton(onClick = { vm.sendChat() }) { Text("▶", color = MC.Gold, fontSize = 16.sp) }
             }
         }
     }
 }
 
 @Composable
-fun darkColorScheme() = darkColorScheme(primary = MedievalColors.Gold, secondary = MedievalColors.ForestGreen, background = Color(0xFF0D1B2A), surface = Color(0xFF16213E))
+fun darkColorScheme() = darkColorScheme(primary = MC.Gold, secondary = MC.ForestGreen, background = Color(0xFF0D1B2A), surface = Color(0xFF16213E))
 
 // ─── HOST ROLE CONFIG ───────────────────────────────────────────────────
 
+data class RolePreset(val players: String, val wolves: String, val neutrals: String, val village: String)
+
+val presets = listOf(
+    RolePreset("5-6", "1 Lobo", "—", "4-5"),
+    RolePreset("7-9", "2 Lobos", "1 Bufón", "4-6"),
+    RolePreset("10-12", "2 Lobos + 1 Lobo vidente", "1 Bufón", "6-8"),
+    RolePreset("13-16", "3 Lobos + 1 Lobo vidente", "1 Bufón + 1 Atorm.", "8-10")
+)
+
+fun autoPreset(playerCount: Int): Map<String, Int> {
+    return when {
+        playerCount in 5..6 -> mapOf("Hombre lobo" to 1)
+        playerCount in 7..9 -> mapOf("Hombre lobo" to 2, "Bufón" to 1)
+        playerCount in 10..12 -> mapOf("Hombre lobo" to 2, "Hombre lobo vidente" to 1, "Bufón" to 1)
+        playerCount in 13..16 -> mapOf("Hombre lobo" to 3, "Hombre lobo vidente" to 1, "Bufón" to 1, "Atormentado" to 1)
+        else -> mapOf("Hombre lobo" to 1)
+    }
+}
+
 @Composable
 fun HostRoleConfigScreen(vm: GameViewModel) {
-    val allRoles = listOf(
-        "Hombre lobo" to "Lobos",
-        "Hombre lobo vidente" to "Lobos",
-        "Bufón" to "Neutral",
-        "Atormentado" to "Neutral",
-        "Usurpador" to "Neutral",
-        "Vidente" to "Pueblo",
-        "Brujo" to "Pueblo",
-        "Cazador" to "Pueblo",
-        "Abuela gruñona" to "Pueblo",
-        "Sacerdote" to "Pueblo",
-        "Chivato" to "Pueblo"
-    )
-
-    var config by remember { mutableStateOf(vm.hostConfig.toMutableMap()) }
     val playerCount = vm.players.size
+    var manualConfig by remember { mutableStateOf(vm.hostConfig.toMutableMap()) }
 
-    Column(modifier = Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState())) {
-        Text("Configuración de roles", fontSize = 18.sp, color = MedievalColors.Gold, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
-        Text("${playerCount} jugadores en sala", fontSize = 13.sp, color = MedievalColors.MoonSilver)
-        Spacer(Modifier.height(4.dp))
+    LaunchedEffect(vm.useAutoPreset, playerCount) {
+        if (vm.useAutoPreset) vm.hostConfig = autoPreset(playerCount)
+    }
 
-        // Preset buttons
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            val preset = com.puebloduerme.engine.RoleAssigner.getPreset(playerCount)
-            TextButton(onClick = {
-                config = preset.roleCounts.toMutableMap()
-                vm.hostConfig = config
-            }) {
-                Text("Preset para $playerCount jugadores", color = MedievalColors.MagicTeal, fontSize = 12.sp)
+    Column(Modifier.fillMaxSize().padding(10.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Configuración de la partida", fontSize = 17.sp, color = MC.BrightGold, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+        Text("${playerCount} jugadores en sala", fontSize = 13.sp, color = MC.MoonSilver)
+        ShieldBorder(color = MC.Gold)
+
+        // Toggle
+        Row(Modifier.fillMaxWidth().background(MC.PanelBg, RoundedCornerShape(8.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Asignación automática", color = MC.Parchment, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+                Text("Roles según nº de jugadores", color = MC.StoneGray, fontSize = 11.sp)
             }
+            Switch(vm.useAutoPreset, { vm.useAutoPreset = it }, colors = SwitchDefaults.colors(checkedTrackColor = MC.ForestGreen, checkedThumbColor = MC.BrightGold))
         }
-        Spacer(Modifier.height(8.dp))
-        MedievalDivider()
-        Spacer(Modifier.height(8.dp))
+        ShieldBorder(color = MC.ForestGreen.copy(alpha = 0.4f))
 
-        // Role counters
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            allRoles.forEach { (roleName, team) ->
-                val count = config[roleName] ?: 0
-                val teamColor = when (team) {
-                    "Lobos" -> MedievalColors.BloodRed
-                    "Neutral" -> MedievalColors.RoyalPurple
-                    else -> MedievalColors.ForestGreen
-                }
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("$roleName ($team)", modifier = Modifier.weight(1f), color = teamColor.copy(alpha = 0.8f), fontSize = 13.sp, fontFamily = FontFamily.Serif)
-                    TextButton(onClick = { if (count > 0) { config[roleName] = count - 1; vm.hostConfig = config } }) {
-                        Text("−", color = MedievalColors.BloodRed, fontSize = 18.sp)
-                    }
-                    Text("$count", color = Color.White, fontSize = 15.sp, modifier = Modifier.width(24.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    TextButton(onClick = { config[roleName] = count + 1; vm.hostConfig = config }) {
-                        Text("+", color = MedievalColors.ForestGreen, fontSize = 18.sp)
-                    }
+        if (vm.useAutoPreset) {
+            Text("Preset para $playerCount jugadores:", color = MC.ForestGreen, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+
+            Row(Modifier.fillMaxWidth().background(MC.DarkWood, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)).padding(6.dp)) {
+                Text("Jug.", Modifier.weight(0.6f), color = MC.BrightGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("Lobos", Modifier.weight(1.3f), color = MC.BloodRed, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Neutrales", Modifier.weight(1.1f), color = MC.RoyalPurple, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Pueblo", Modifier.weight(0.8f), color = MC.ForestGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            }
+
+            presets.forEachIndexed { i, p ->
+                val active = when { playerCount in 5..6 -> i == 0; playerCount in 7..9 -> i == 1; playerCount in 10..12 -> i == 2; playerCount in 13..16 -> i == 3; else -> false }
+                Row(Modifier.fillMaxWidth().background(if (active) MC.GoldBg else MC.PanelBg).border(if (active) 1.dp else 0.dp, if (active) MC.Gold.copy(alpha = 0.4f) else Color.Transparent, RoundedCornerShape(if (i == presets.lastIndex) 6.dp else 0.dp)).padding(5.dp)) {
+                    Text(p.players, Modifier.weight(0.6f), color = if (active) MC.BrightGold else MC.MoonSilver, fontSize = 11.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal)
+                    Text(p.wolves, Modifier.weight(1.3f), color = MC.BloodRed, fontSize = 10.sp, textAlign = TextAlign.Center)
+                    Text(p.neutrals, Modifier.weight(1.1f), color = MC.RoyalPurple, fontSize = 10.sp, textAlign = TextAlign.Center)
+                    Text(p.village, Modifier.weight(0.8f), color = MC.ForestGreen, fontSize = 10.sp, textAlign = TextAlign.Center)
                 }
             }
+
+            Spacer(Modifier.height(4.dp)); ShieldBorder(color = MC.Gold.copy(alpha = 0.3f))
+            val cfg = vm.hostConfig
+            if (cfg.isNotEmpty()) {
+                Text("Asignación:", color = MC.MoonSilver, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                cfg.forEach { (role, count) -> Text("  $count× $role", color = MC.Parchment, fontSize = 12.sp, fontFamily = FontFamily.Serif) }
+                Text("  ${playerCount - cfg.values.sum()}× Ciudadanos", color = MC.StoneGray, fontSize = 12.sp, fontFamily = FontFamily.Serif)
+            }
+            ShieldBorder(color = MC.Gold.copy(alpha = 0.3f))
+        } else {
+            Text("Configuración manual:", color = MC.FireOrange, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+
+            val allRoles = listOf(
+                "Hombre lobo" to "Lobos" to MC.BloodRed, "Hombre lobo vidente" to "Lobos" to MC.BloodRed,
+                "Bufón" to "Neutral" to MC.RoyalPurple, "Atormentado" to "Neutral" to MC.RoyalPurple, "Usurpador" to "Neutral" to MC.RoyalPurple,
+                "Vidente" to "Pueblo" to MC.ForestGreen, "Brujo" to "Pueblo" to MC.ForestGreen, "Cazador" to "Pueblo" to MC.ForestGreen,
+                "Abuela gruñona" to "Pueblo" to MC.ForestGreen, "Sacerdote" to "Pueblo" to MC.ForestGreen, "Chivato" to "Pueblo" to MC.ForestGreen
+            )
+            allRoles.forEach { (pair, tc) ->
+                val (rn, team) = pair; val count = manualConfig[rn] ?: 0
+                Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("$rn ($team)", Modifier.weight(1f), color = tc, fontSize = 12.sp, fontFamily = FontFamily.Serif)
+                    TextButton(onClick = { if (count > 0) { manualConfig[rn] = count - 1; vm.hostConfig = manualConfig } }) { Text("−", color = MC.BloodRed, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                    Text("$count", color = MC.Parchment, fontSize = 14.sp, modifier = Modifier.width(20.dp), textAlign = TextAlign.Center)
+                    TextButton(onClick = { manualConfig[rn] = count + 1; vm.hostConfig = manualConfig }) { Text("+", color = MC.ForestGreen, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                }
+            }
+            ShieldBorder(color = MC.FireOrange.copy(alpha = 0.4f))
+            val total = manualConfig.values.sum()
+            Text("Especiales: $total | Ciudadanos: ${playerCount - total}", color = if (total <= playerCount) MC.ForestGreen else MC.BloodRed, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.height(8.dp))
-        MedievalDivider()
-        Spacer(Modifier.height(8.dp))
-
-        // Total roles vs players
-        val totalRoles = config.values.sum()
-        val citizens = playerCount - totalRoles
-        Text("Roles especiales: $totalRoles | Ciudadanos: $citizens",
-            color = if (citizens >= 0) MedievalColors.ForestGreen else MedievalColors.BloodRed,
-            fontSize = 14.sp, fontWeight = FontWeight.Bold)
-
-        if (citizens < 0) {
-            Text("¡Demasiados roles para ${playerCount} jugadores!",
-                color = MedievalColors.BloodRed, fontSize = 12.sp)
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        Button(
-            onClick = { vm.startGame() },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = citizens >= 0 && playerCount >= 5,
-            colors = ButtonDefaults.buttonColors(containerColor = MedievalColors.ForestGreen)
-        ) {
-            Text("Iniciar partida", fontFamily = FontFamily.Serif)
-        }
-
-        if (playerCount < 5) {
-            Text("Mínimo 5 jugadores para empezar", color = MedievalColors.StoneGray, fontSize = 12.sp)
+        val cfg = vm.hostConfig; val total = cfg.values.sum(); val ok = total <= playerCount && playerCount >= 5
+        Button(onClick = { vm.startGame() }, Modifier.fillMaxWidth().height(48.dp), enabled = ok, colors = ButtonDefaults.buttonColors(containerColor = MC.ForestGreen, disabledContainerColor = MC.StoneGray)) {
+            Text(if (playerCount < 5) "Mínimo 5 jugadores" else "Iniciar partida", fontFamily = FontFamily.Serif, fontSize = 16.sp, color = if (ok) Color.White else MC.NightBlue)
         }
     }
 }
