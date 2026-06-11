@@ -444,7 +444,7 @@ class GameSessionTest {
         assertEquals(cazador1.id, session.state.pendingHunterDeath)
 
         // Cazador1 shoots cazador2 → chain reaction
-        session.submitHunterShoot(cazador2.id)
+        session.submitHunterShoot(cazador1.id, cazador2.id)
 
         assertFalse(cazador2.alive)
         assertEquals(cazador2.id, session.state.pendingHunterDeath)
@@ -673,7 +673,7 @@ class GameSessionTest {
     // ─── F5: Neutrales ────────────────────────────────────────────────────
 
     @Test
-    fun `bufon wins individually when lynched but game continues`() {
+    fun `bufon wins and game ends when lynched`() {
         val config = GameConfig(
             enabledRoles = setOf("Ciudadano", "Hombre lobo", "Bufón"),
             roleCounts = mapOf("Hombre lobo" to 1, "Bufón" to 1)
@@ -681,7 +681,6 @@ class GameSessionTest {
         setupGameWithConfig(6, config)
 
         val bufon = session.state.players.find { it.role is Bufon }!!
-        val wolf = session.state.lobosVivos.first()
 
         session.advancePhase() // NOCHE -> DIA
         session.advancePhase() // DIA -> DISCUSION
@@ -693,10 +692,9 @@ class GameSessionTest {
         val result = session.advancePhase()
 
         assertFalse(bufon.alive)
-        assertTrue(session.state.winners.contains(bufon.id))
-        assertTrue(result.any { it is LynchResultEvent && it.playerId == bufon.id })
-        // Game does NOT end — phase should be NOCHE (next round) not FIN
-        assertEquals(Phase.NOCHE, session.state.phase)
+        assertEquals(Phase.FIN, session.state.phase)
+        assertTrue(result.any { it is GameOverEvent && (it as GameOverEvent).winningTeam == Team.NEUTRAL })
+        assertTrue(result.any { it is GameOverEvent && (it as GameOverEvent).winners.contains(bufon.id) })
     }
 
     @Test
@@ -719,6 +717,7 @@ class GameSessionTest {
 
     @Test
     fun `bufon included in winners list when game ends after individual win`() {
+        // Bufón lynched → game ends immediately, Bufón is the sole winner
         val config = GameConfig(
             enabledRoles = setOf("Ciudadano", "Hombre lobo", "Bufón"),
             roleCounts = mapOf("Hombre lobo" to 1, "Bufón" to 1)
@@ -726,26 +725,18 @@ class GameSessionTest {
         setupGameWithConfig(7, config)
 
         val bufon = session.state.players.find { it.role is Bufon }!!
-        val wolf = session.state.lobosVivos.first()
-        val isBufonAliveBefore = bufon.alive
 
-        // Lynch the Bufón first
+        // Lynch the Bufón
         session.advancePhase(); session.advancePhase(); session.advancePhase()
         val voters = session.state.vivos.filter { it.id != bufon.id && !it.silencedThisRound }
         for (v in voters) session.castVote(v.id, bufon.id)
-        session.advancePhase()
-
-        assertTrue(session.state.winners.contains(bufon.id))
-        assertEquals(Phase.NOCHE, session.state.phase) // Game continues
-
-        // Wolf kills itself → no wolves → Pueblo wins immediately
-        session.submitNightAction(wolf.id, "WOLF_KILL_VOTE", wolf.id)
         val result = session.advancePhase()
 
         assertEquals(Phase.FIN, session.state.phase)
+        assertFalse(bufon.alive)
         val gameOver = result.filterIsInstance<GameOverEvent>().firstOrNull()
         assertNotNull(gameOver)
-        assertEquals(Team.PUEBLO, gameOver!!.winningTeam)
+        assertEquals(Team.NEUTRAL, gameOver!!.winningTeam)
         assertTrue(gameOver.winners.contains(bufon.id))
     }
 

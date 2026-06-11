@@ -31,7 +31,7 @@ fun main() {
 
         routing {
             webSocket("/game") {
-                val scope = CoroutineScope(Dispatchers.Default)
+                val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
                 val session = WebSocketSession { text ->
                     scope.launch { send(Frame.Text(text)) }
                 }
@@ -91,12 +91,14 @@ fun main() {
                             }
                         }
                     }
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    // Log would go here in production
                 } finally {
                     if (session.playerId.isNotEmpty()) {
                         hosts.values.find { it.getPlayer(session.playerId) != null }
                             ?.disconnectPlayer(session.playerId)
                     }
+                    scope.cancel()
                 }
             }
         }

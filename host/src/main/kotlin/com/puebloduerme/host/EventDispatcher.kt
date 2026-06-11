@@ -22,7 +22,7 @@ class EventDispatcher(private val host: GameHost) {
                 host.sendToAll(DeathReveal(deaths))
             }
             is PlayerRevivedEvent -> host.sendToAll(Revive(event.playerId, event.playerName))
-            is PlayerSilencedEvent -> host.sendToAllExcept(Silenced(event.playerId), event.playerId)
+            is PlayerSilencedEvent -> { /* Solo notificar al silenciado, ya se hace en SilencedNotificationEvent */ }
             is SilencedNotificationEvent -> host.sendToPlayer(event.playerId, Silenced(event.playerId))
             is SeerResultEvent -> host.sendToPlayer(event.playerId,
                 SeerResult(event.targetId, event.revealedRole))

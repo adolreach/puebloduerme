@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Black background -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M0,0h108v108H0z" />
+    <!-- Wolf head silhouette -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,28 C38,28 24,38 24,52 C24,58 26,64 30,68 L22,76 L30,82 L36,72 C42,76 48,78 54,78 C60,78 66,76 72,72 L78,82 L86,76 L78,68 C82,64 84,58 84,52 C84,38 70,28 54,28 Z M45,48 C48,48 50,50 50,53 C50,55 48,57 45,57 C43,57 40,55 40,53 C40,50 43,48 45,48 Z M63,48 C66,48 68,50 68,53 C68,55 66,57 63,57 C60,57 58,55 58,53 C58,50 60,48 63,48 Z M40,62 C40,62 44,66 54,66 C64,66 68,62 68,62 C68,64 62,70 54,70 C46,70 40,64 40,62 Z" />
+    <!-- Ears -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M30,40 L34,52 L28,50 Z M78,40 L80,50 L74,52 Z" />
+</vector>

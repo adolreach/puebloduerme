@@ -11,6 +11,6 @@ object Chivato : Role {
     override val abilities = listOf("Al morir, revela el rol de un jugador vivo a todos")
 
     override fun onDeath(state: GameState, self: Player) {
-        state.chivatoRevealTarget = null
+        state.chivatoRevealTarget = self.id
     }
 }

@@ -115,6 +115,7 @@ class GameSession {
 
     fun advancePhase(): List<GameEvent> {
         val events = mutableListOf<GameEvent>()
+        if (state.phase == Phase.FIN) return events
 
         when (state.phase) {
             Phase.NOCHE -> {
@@ -176,6 +177,7 @@ class GameSession {
                     events.add(ErrorEvent("NOT_SEER", "No eres el Vidente"))
                     return events
                 }
+                state.nightActions.removeAll { it.playerId == playerId && it.actionType == "SEER_INSPECT" }
                 state.nightActions.add(NightAction(playerId, actionType, targetId))
             }
             "GRANDMA_SILENCE" -> {
@@ -183,6 +185,7 @@ class GameSession {
                     events.add(ErrorEvent("NOT_GRANDMA", "No eres la Abuela gruñona"))
                     return events
                 }
+                state.nightActions.removeAll { it.playerId == playerId && it.actionType == "GRANDMA_SILENCE" }
                 state.nightActions.add(NightAction(playerId, actionType, targetId))
             }
             "WITCH_REVIVE" -> {
@@ -194,6 +197,7 @@ class GameSession {
                     events.add(ErrorEvent("ALREADY_USED", "Ya usaste tu conjuro"))
                     return events
                 }
+                state.nightActions.removeAll { it.playerId == playerId && it.actionType == "WITCH_REVIVE" }
                 state.nightActions.add(NightAction(playerId, actionType, targetId))
             }
             "WOLFSEER_INSPECT" -> {
@@ -201,6 +205,7 @@ class GameSession {
                     events.add(ErrorEvent("NOT_WOLFSEER", "No eres el Hombre lobo vidente"))
                     return events
                 }
+                state.nightActions.removeAll { it.playerId == playerId && it.actionType == "WOLFSEER_INSPECT" }
                 state.nightActions.add(NightAction(playerId, actionType, targetId))
             }
         }
@@ -228,25 +233,35 @@ class GameSession {
         return events
     }
 
-    fun submitHunterShoot(targetId: String): List<GameEvent> {
+    fun submitHunterShoot(playerId: String, targetId: String): List<GameEvent> {
         val events = mutableListOf<GameEvent>()
 
+        if (state.phase != Phase.DIA) {
+            events.add(ErrorEvent("WRONG_PHASE", "Solo puedes disparar durante el día"))
+            return events
+        }
         if (state.pendingHunterDeath == null) {
             events.add(ErrorEvent("NO_HUNTER", "No hay disparo pendiente del Cazador"))
+            return events
+        }
+        if (state.pendingHunterDeath != playerId) {
+            events.add(ErrorEvent("NOT_YOUR_TURN", "No eres el Cazador que debe disparar"))
             return events
         }
 
         val result = voteResolver.resolveHunterShoot(targetId)
         events.addAll(result)
-
         val victoryEvents = VictoryChecker.check(state)
         events.addAll(victoryEvents)
-
         return events
     }
 
-    fun submitChivatoReveal(targetId: String): List<GameEvent> {
+    fun submitChivatoReveal(playerId: String, targetId: String): List<GameEvent> {
         val events = mutableListOf<GameEvent>()
+        if (state.chivatoRevealTarget != playerId) {
+            events.add(ErrorEvent("NOT_CHIVATO", "No eres el Chivato que acaba de morir"))
+            return events
+        }
         val result = voteResolver.resolveChivatoReveal(targetId)
         events.addAll(result)
         return events
@@ -311,7 +326,7 @@ class GameSession {
                     is AbuelaGrunona -> state.vivos.filter { p ->
                         p.id != playerId || state.config.allowSelfSilence
                     }.map { it.id }
-                    is Brujo -> state.muertos.map { it.id }
+                    is Brujo -> state.players.map { it.id }
                     else -> emptyList()
                 }
             }

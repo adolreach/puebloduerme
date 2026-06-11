@@ -8,10 +8,13 @@ class ChatManager(private val state: GameState) {
     fun canSendMessage(playerId: String, channel: String): Boolean {
         val player = state.players.find { it.id == playerId } ?: return false
 
+        // Use Role interface's permission check if overridden
+        if (channel == "MUERTOS" && player.role.canChatInChannel(channel, state, player)) return true
+
         return when (channel) {
             "PUEBLO" -> player.alive && !player.silencedThisRound
             "LOBOS" -> player.alive && player.role.team == Team.LOBOS
-            "MUERTOS" -> !player.alive || (player.alive && player.role is Brujo)
+            "MUERTOS" -> !player.alive
             else -> false
         }
     }

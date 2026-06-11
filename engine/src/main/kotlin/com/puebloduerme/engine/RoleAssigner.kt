@@ -99,6 +99,7 @@ object RoleAssigner {
         }
 
         if (neutrals >= 1) roleCounts["Bufón"] = 1
+        if (neutrals >= 2) roleCounts["Atormentado"] = 1
 
         val enabled = mutableSetOf("Ciudadano", "Hombre lobo", "Hombre lobo vidente",
             "Bufón", "Vidente", "Brujo", "Cazador", "Abuela gruñona", "Sacerdote",

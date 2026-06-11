@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.puebloduerme.engine.model.Phase
@@ -186,8 +189,16 @@ fun SeerEyeAnimation(modifier: Modifier = Modifier, onFinished: () -> Unit = {})
 fun ReviveAnimation(modifier: Modifier = Modifier, onFinished: () -> Unit = {}) {
     val glow = remember { Animatable(0f) }
     val time = remember { mutableStateOf(0f) }
-    LaunchedEffect(Unit) { while (true) { time.value = (time.value + 0.06f) % 1f; delay(16) } }
-    LaunchedEffect(Unit) { glow.animateTo(1f, tween(900)); delay(700); glow.animateTo(0f, tween(350)); onFinished() }
+    var running by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) { while (running) { time.value = (time.value + 0.06f) % 1f; delay(16) } }
+    LaunchedEffect(Unit) {
+        glow.animateTo(1f, tween(900))
+        delay(700)
+        glow.animateTo(0f, tween(350))
+        running = false
+        onFinished()
+    }
     Box(Modifier.size(70.dp).background(MC.DeepGreen.copy(alpha = 0.6f), RoundedCornerShape(12.dp)).border(1.dp, MC.ForestGreen.copy(alpha = 0.5f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val cx = size.width / 2; val cy = size.height / 2; val g = glow.value
@@ -201,17 +212,80 @@ fun ReviveAnimation(modifier: Modifier = Modifier, onFinished: () -> Unit = {}) 
     }
 }
 
-// ─── COUNTDOWN ──────────────────────────────────────────────────────────
+// ─── BUFÓN VICTORY ──────────────────────────────────────────────────────
+
+@Composable
+fun BufonVictoryScreen(playerName: String, onContinue: () -> Unit) {
+    var show by remember { mutableStateOf(false) }
+    val confetti = remember { (0..20).map { Animatable(0f) } }
+
+    LaunchedEffect(Unit) {
+        show = true
+        delay(300)
+        confetti.forEachIndexed { i, a ->
+            launch { delay(i * 40L); a.animateTo(1f, tween(600 + i * 30, easing = EaseOutCubic)) }
+        }
+    }
+
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(MC.RoyalPurple, MC.PurpleBg, MC.NightBlue))), contentAlignment = Alignment.Center) {
+        // Confetti particles
+        Canvas(Modifier.fillMaxSize()) {
+            confetti.forEachIndexed { i, a ->
+                val x = (size.width * (0.1f + (i % 5) * 0.2f) + sin(i * 1.8f).toFloat() * 20f)
+                val y = size.height * 0.3f - a.value * size.height * 0.4f + cos(i * 0.9f + a.value * 5f).toFloat() * 10f
+                val colors = listOf(MC.BrightGold, MC.BloodRed, MC.MagicTeal, MC.ForestGreen, MC.FireOrange)
+                drawCircle(colors[i % colors.size].copy(alpha = (1f - a.value) * 0.8f), radius = 4f + (i % 3) * 3f, center = Offset(x, y))
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Jester hat
+            Canvas(Modifier.size(80.dp)) {
+                val cx = size.width / 2; val cy = size.height / 2
+                drawCircle(MC.BrightGold, 8f, Offset(cx, cy - 28f))
+                drawCircle(MC.BrightGold, 8f, Offset(cx - 16f, cy - 8f))
+                drawCircle(MC.BrightGold, 8f, Offset(cx + 16f, cy - 8f))
+                drawArc(MC.RoyalPurple, 0f, 180f, true, Offset(cx - 20f, cy + 4f), Size(40f, 16f))
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Text("¡El Bufón ha sido linchado!", color = MC.BrightGold, fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(8.dp))
+            Text("$playerName engañó al pueblo", color = MC.Parchment, fontSize = 16.sp, fontFamily = FontFamily.Serif)
+            Spacer(Modifier.height(4.dp))
+            Text("y consiguió su objetivo.", color = MC.Parchment, fontSize = 16.sp, fontFamily = FontFamily.Serif)
+            Spacer(Modifier.height(20.dp))
+            ShieldBorder(color = MC.Gold)
+            Spacer(Modifier.height(20.dp))
+            Text("🏆 El Bufón gana la partida 🏆", color = MC.BrightGold, fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+
+            Spacer(Modifier.height(32.dp))
+            OutlinedButton(
+                onClick = onContinue,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MC.BrightGold)
+            ) {
+                Text("Continuar", fontFamily = FontFamily.Serif, fontSize = 15.sp)
+            }
+        }
+    }
+}
 
 @Composable
 fun PhaseTimer(endsAt: Long, modifier: Modifier = Modifier) {
     if (endsAt <= 0) return
-    var remaining by remember { mutableStateOf((endsAt - System.currentTimeMillis()) / 1000) }
-    LaunchedEffect(endsAt) { while (remaining > 0) { delay(1000); remaining = ((endsAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0) } }
+    val totalMs = remember(endsAt) { endsAt - System.currentTimeMillis() }
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(endsAt) {
+        while (System.currentTimeMillis() < endsAt) { delay(200); now = System.currentTimeMillis() }
+    }
+
+    val remainingMs = (endsAt - now).coerceAtLeast(0)
     Box(modifier.fillMaxWidth().height(3.dp)) {
         Canvas(Modifier.fillMaxSize()) {
             drawRect(color = MC.IceWhite.copy(alpha = 0.1f))
-            drawRect(color = when { remaining <= 5 -> MC.BloodRed; remaining <= 15 -> MC.Gold; else -> MC.ForestGreen }, size = Size(size.width * (remaining / 60f).coerceIn(0f, 1f), size.height))
+            val fraction = if (totalMs > 0) (remainingMs.toFloat() / totalMs).coerceIn(0f, 1f) else 0f
+            drawRect(color = when { remainingMs <= 5000 -> MC.BloodRed; remainingMs <= 15000 -> MC.Gold; else -> MC.ForestGreen }, size = Size(size.width * fraction, size.height))
         }
     }
 }

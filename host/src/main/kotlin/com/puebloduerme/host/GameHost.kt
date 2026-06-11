@@ -17,6 +17,7 @@ class GameHost {
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
+        classDiscriminator = "type"
     }
 
     fun createRoom(hostName: String, config: GameConfig): List<GameEvent> {
@@ -51,7 +52,7 @@ class GameHost {
             val clientMsg = json.decodeFromString<ClientMessage>(rawMessage)
             handleClientMessage(senderId, clientMsg)
         } catch (e: Exception) {
-            sendToPlayer(senderId, ErrorMsg("PARSE_ERROR", "Mensaje inválido: ${e.message}"))
+            sendToPlayer(senderId, ErrorMsg("PARSE_ERROR", "Mensaje inválido"))
         }
     }
 
@@ -61,8 +62,8 @@ class GameHost {
             is com.puebloduerme.protocol.StartGame -> game.startGame()
             is NightActionMsg -> game.submitNightAction(senderId, message.actionType, message.targetId)
             is DayActionMsg -> game.submitDayAction(senderId, message.actionType, message.targetId)
-            is HunterShoot -> game.submitHunterShoot(message.targetId)
-            is ChivatoRevealMsg -> game.submitChivatoReveal(message.targetId)
+            is HunterShoot -> game.submitHunterShoot(senderId, message.targetId)
+            is ChivatoRevealMsg -> game.submitChivatoReveal(senderId, message.targetId)
             is CastVote -> game.castVote(senderId, message.targetId)
             is ChatMessageMsg -> game.sendChatMessage(senderId, message.channel, message.text)
             is LeaveRoom -> game.leaveRoom(senderId)

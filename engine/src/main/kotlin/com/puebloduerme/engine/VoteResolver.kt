@@ -40,7 +40,7 @@ class VoteResolver(private val state: GameState) {
             return events
         }
 
-        val threshold = (totalEligible / 2.0)
+        val threshold = (state.vivosActuales / 2.0)
         if (maxVotes < threshold) {
             events.add(LynchResultEvent(null, null, null))
             cleanupVotes()
@@ -63,6 +63,14 @@ class VoteResolver(private val state: GameState) {
 
             if (lynched.role is Bufon) {
                 VictoryChecker.registerBufonWin(state, lynched.id)
+                state.phase = Phase.FIN
+                val winners = listOf(lynched.id)
+                val rolesSummary = state.players.map { p ->
+                    RoleSummaryEvent(p.id, p.name, p.role.name, p.role.team, p.alive)
+                }
+                events.add(GameOverEvent(Team.NEUTRAL, winners, rolesSummary))
+                cleanupVotes()
+                return events
             }
 
             if (lynched.role is Cazador) {
@@ -153,8 +161,7 @@ class VoteResolver(private val state: GameState) {
 
         if (target.role.team == Team.LOBOS) {
             target.alive = false
-            val revealedRole = if (state.config.revealRoleOnDeath) target.role.name else null
-            val info = DeathInfoEvent(target.id, target.name, revealedRole, "SACERDOTE")
+            val info = DeathInfoEvent(target.id, target.name, target.role.name, "SACERDOTE")
             events.add(DeathRevealedEvent(listOf(info)))
             target.role.onDeath(state, target)
 
@@ -169,16 +176,9 @@ class VoteResolver(private val state: GameState) {
             checkUsurpadorInheritance(target, state)
         } else {
             priest.alive = false
+            priest.role.onDeath(state, priest)
             val info = DeathInfoEvent(priest.id, priest.name, null, "SACERDOTE")
             events.add(DeathRevealedEvent(listOf(info)))
-
-            if (priest.role is Cazador) {
-                val targets = state.vivos.map { it.id }
-                if (targets.isNotEmpty()) {
-                    events.add(HunterPromptEvent(priest.id, targets))
-                }
-                state.pendingHunterDeath = priest.id
-            }
         }
 
         return events

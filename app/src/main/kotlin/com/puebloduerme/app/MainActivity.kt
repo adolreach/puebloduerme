@@ -61,7 +61,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 val vm: GameViewModel = viewModel()
-                AnimatedContent(
+                if (vm.showRoleInfo) {
+                    RoleInfoScreen(onBack = { vm.showRoleInfo = false })
+                } else {
+                    AnimatedContent(
                     targetState = vm.gameStarted,
                     transitionSpec = {
                         fadeIn(tween(500)) + slideInVertically(tween(500)) { it / 4 } togetherWith
@@ -69,6 +72,7 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { started ->
                     if (started) GameScreen(vm) else LobbyScreen(vm)
+                }
                 }
             }
         }
@@ -105,7 +109,11 @@ class GameViewModel : ViewModel() {
     var lastDeaths by mutableStateOf<List<String>>(emptyList())
     var lynchInfo by mutableStateOf<String?>(null)
     var gameOverInfo by mutableStateOf<String?>(null)
+    var winningTeam by mutableStateOf("")
     var rolesRevealed by mutableStateOf(false)
+    var showRoulette by mutableStateOf(false)
+    var rouletteRole by mutableStateOf("")
+    var rouletteTeam by mutableStateOf(Team.PUEBLO)
     var allRolesText by mutableStateOf("")
     var wolves by mutableStateOf<List<String>>(emptyList())
     var silenced by mutableStateOf(false)
@@ -114,6 +122,7 @@ class GameViewModel : ViewModel() {
     var showRevive by mutableStateOf(false)
     var remoteUrl by mutableStateOf("")
     var reconnectToken by mutableStateOf("")
+    var showRoleInfo by mutableStateOf(false)
 
     var chatText by mutableStateOf("")
     var hostConfig by mutableStateOf<Map<String, Int>>(emptyMap())
@@ -122,6 +131,7 @@ class GameViewModel : ViewModel() {
     private var server: io.ktor.server.engine.EmbeddedServer<*, *>? = null
     private val hosts = ConcurrentHashMap<String, GameHost>()
     private var clientSession: WebSocketSession? = null
+    private var httpClient: HttpClient? = null
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; classDiscriminator = "type" }
 
@@ -167,8 +177,9 @@ class GameViewModel : ViewModel() {
         statusMsg = "Conectando a $serverUrl..."
         viewModelScope.launch {
             try {
-                val client = HttpClient(OkHttp)
-                client.webSocket(serverUrl) {
+                httpClient?.close()
+                httpClient = HttpClient(OkHttp)
+                httpClient!!.webSocket(serverUrl) {
                     send(Frame.Text(json.encodeToString(JoinRoom(code, name))))
                     for (frame in incoming) if (frame is Frame.Text) handleServerMessage(frame.readText())
                 }
@@ -182,8 +193,9 @@ class GameViewModel : ViewModel() {
         statusMsg = "Reconectando..."
         viewModelScope.launch {
             try {
-                val client = HttpClient(OkHttp)
-                client.webSocket(url) {
+                httpClient?.close()
+                httpClient = HttpClient(OkHttp)
+                httpClient!!.webSocket(url) {
                     send(Frame.Text(json.encodeToString(Reconnect(roomCode, reconnectToken))))
                     for (frame in incoming) if (frame is Frame.Text) handleServerMessage(frame.readText())
                 }
@@ -260,9 +272,13 @@ class GameViewModel : ViewModel() {
                 }
                 "ASSIGN_ROLE" -> {
                     myRole = data["role"].toString().trim('"'); myTeam = data["team"].toString().trim('"')
+                    rouletteRole = myRole
+                    rouletteTeam = try { Team.valueOf(myTeam) } catch (_: Exception) { Team.PUEBLO }
+                    showRoulette = true
                     val abArr = data["abilities"]?.let { it as? kotlinx.serialization.json.JsonArray }
                     myAbilities = abArr?.map { it.toString().trim('"') } ?: emptyList()
                     availableChannels = when (myTeam) { "LOBOS" -> listOf("PUEBLO", "LOBOS"); else -> listOf("PUEBLO") }
+                    if (myRole == "Brujo") availableChannels = availableChannels + "MUERTOS"
                 }
                 "PLAYER_TOKEN" -> { myToken = data["playerToken"].toString().trim('"'); reconnectToken = myToken }
                 "PHASE_CHANGE" -> {
@@ -285,6 +301,9 @@ class GameViewModel : ViewModel() {
                 "DEATH_REVEAL" -> {
                     val deaths = (data["deaths"] as? kotlinx.serialization.json.JsonArray)?.map { it.jsonObject }
                     lastDeaths = deaths?.map { "${it["playerName"].toString().trim('"')} (${it["revealedRole"].toString().trim('"')}) - ${it["cause"].toString().trim('"')}" } ?: emptyList()
+                    // Refresh channels in case current player died
+                    val isAlive = players.find { it.id == playerId }?.alive ?: true
+                    if (!isAlive) availableChannels = listOf("MUERTOS")
                 }
                 "REVIVE" -> { statusMsg = "${data["playerName"].toString().trim('"')} ha revivido"; showRevive = true }
                 "SILENCED" -> { if (data["playerId"].toString().trim('"') == playerId) silenced = true }
@@ -292,13 +311,13 @@ class GameViewModel : ViewModel() {
                 "LYNCH_RESULT" -> { val n = data["playerName"]?.toString()?.trim('"'); lynchInfo = if (n != null) "$n (${data["revealedRole"]?.toString()?.trim('"')}) ha sido linchado" else "Nadie fue linchado" }
                 "CHIVATO_REVEAL_PUBLIC" -> { statusMsg = "Chivato revela: ${data["targetName"].toString().trim('"')} es ${data["role"].toString().trim('"')}" }
                 "CHAT_BROADCAST" -> { chatMessages = chatMessages + ChatMsg(data["fromId"].toString().trim('"'), data["fromName"].toString().trim('"'), data["text"].toString().trim('"'), data["channel"].toString().trim('"')) }
-                "GAME_OVER" -> { gameOverInfo = "Fin del juego — ganan: ${data["winningTeam"].toString().trim('"')}"; rolesRevealed = true; val s = data["rolesSummary"] as? kotlinx.serialization.json.JsonArray; allRolesText = s?.joinToString("\n") { val o = it.jsonObject; "${o["playerName"].toString().trim('"')}: ${o["role"].toString().trim('"')} (${o["team"].toString().trim('"')})" } ?: "" }
+                "GAME_OVER" -> { gameOverInfo = "Fin del juego — ganan: ${data["winningTeam"].toString().trim('"')}"; winningTeam = data["winningTeam"].toString().trim('"'); rolesRevealed = true; val s = data["rolesSummary"] as? kotlinx.serialization.json.JsonArray; allRolesText = s?.joinToString("\n") { val o = it.jsonObject; "${o["playerName"].toString().trim('"')}: ${o["role"].toString().trim('"')} (${o["team"].toString().trim('"')})" } ?: "" }
                 "ERROR" -> { statusMsg = data["message"].toString().trim('"') }
             }
         } catch (_: Exception) {}
     }
 
-    override fun onCleared() { super.onCleared(); server?.stop(1000, 2000) }
+    override fun onCleared() { super.onCleared(); server?.stop(1000, 2000); httpClient?.close(); hosts.clear() }
 }
 
 // ─── LOBBY ──────────────────────────────────────────────────────────────────
@@ -331,6 +350,17 @@ fun LobbyScreen(vm: GameViewModel) {
 
         Button(onClick = { if (name.isNotBlank()) vm.createRoom(name) }, modifier = Modifier.fillMaxWidth().height(48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MC.ForestGreen)) { Text("Crear sala (anfitrión)", fontFamily = FontFamily.Serif, color = Color.White, fontSize = 15.sp) }
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = { vm.showRoleInfo = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MC.Gold),
+            border = ButtonDefaults.outlinedButtonBorder
+        ) {
+            Text("Ver todos los roles", fontFamily = FontFamily.Serif, color = MC.Gold, fontSize = 14.sp)
+        }
 
         Spacer(Modifier.height(20.dp))
         ShieldBorder()
@@ -377,6 +407,19 @@ fun LobbyScreen(vm: GameViewModel) {
 
 @Composable
 fun GameScreen(vm: GameViewModel) {
+    if (vm.showRoulette) {
+        RoleRevealRoulette(vm.rouletteRole, vm.rouletteTeam) { vm.showRoulette = false }
+        return
+    }
+
+    if (vm.winningTeam == "NEUTRAL") {
+        BufonVictoryScreen(
+            playerName = vm.playerName,
+            onContinue = { vm.winningTeam = ""; vm.gameOverInfo = null; vm.rolesRevealed = false }
+        )
+        return
+    }
+
     MedievalBackground()
     Column(modifier = Modifier.fillMaxSize()) {
         PhaseTransitionAnimation(vm.currentPhase)
@@ -448,7 +491,7 @@ fun PlayerList(vm: GameViewModel) {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp).horizontalScroll(rememberScrollState())) {
         vm.players.forEach { p ->
             AnimatedVisibility(visible = true, enter = fadeIn() + expandHorizontally()) {
-                val bg = if (!p.alive) MC.AshGray else if (vm.wolves.contains(p.id)) MC.RoyalPurple.copy(alpha = 0.4f) else MC.ForestGreen.copy(alpha = 0.3f)
+                val bg = if (!p.alive) MC.AshGray else if (vm.wolves.contains(p.id) && vm.myTeam == "LOBOS") MC.RoyalPurple.copy(alpha = 0.4f) else MC.ForestGreen.copy(alpha = 0.3f)
                 Text("${p.name}${if (!p.alive) " ☠" else ""}",
                     modifier = Modifier.background(bg, RoundedCornerShape(6.dp)).padding(horizontal = 5.dp, vertical = 2.dp),
                     fontSize = 11.sp, color = Color.White, fontFamily = FontFamily.Serif)
@@ -683,9 +726,9 @@ fun HostRoleConfigScreen(vm: GameViewModel) {
                 val (rn, team) = pair; val count = manualConfig[rn] ?: 0
                 Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("$rn ($team)", Modifier.weight(1f), color = tc, fontSize = 12.sp, fontFamily = FontFamily.Serif)
-                    TextButton(onClick = { if (count > 0) { manualConfig[rn] = count - 1; vm.hostConfig = manualConfig } }) { Text("−", color = MC.BloodRed, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                    TextButton(onClick = { if (count > 0) { manualConfig[rn] = count - 1; vm.hostConfig = manualConfig.toMap() } }) { Text("−", color = MC.BloodRed, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
                     Text("$count", color = MC.Parchment, fontSize = 14.sp, modifier = Modifier.width(20.dp), textAlign = TextAlign.Center)
-                    TextButton(onClick = { manualConfig[rn] = count + 1; vm.hostConfig = manualConfig }) { Text("+", color = MC.ForestGreen, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                    TextButton(onClick = { manualConfig[rn] = count + 1; vm.hostConfig = manualConfig.toMap() }) { Text("+", color = MC.ForestGreen, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
                 }
             }
             ShieldBorder(color = MC.FireOrange.copy(alpha = 0.4f))

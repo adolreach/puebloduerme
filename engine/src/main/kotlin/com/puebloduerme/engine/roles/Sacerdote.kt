@@ -9,12 +9,4 @@ object Sacerdote : Role {
     override val name = "Sacerdote"
     override val nightCaller = false
     override val abilities = listOf("Agua bendita: si es lobo muere, si no muere el Sacerdote (un solo uso)")
-
-    override fun shouldRevealRoleOnDeath(state: GameState, self: Player): String? {
-        return if (self.targetId != null) {
-            null
-        } else {
-            name
-        }
-    }
 }
