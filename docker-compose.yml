@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  puebloduerme:
+    build: .
+    container_name: puebloduerme-server
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - JAVA_OPTS=-Xmx256m -Xms128m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "java", "-version"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
