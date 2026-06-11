@@ -38,6 +38,9 @@ jobs:
           key: gradle-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: gradle-
 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Run engine tests
         run: ./gradlew :engine:test --no-daemon
 
